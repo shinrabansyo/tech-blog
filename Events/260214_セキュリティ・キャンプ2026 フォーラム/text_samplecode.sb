@@ -1,0 +1,96 @@
+struct FreeList {
+    size: i32,
+    prev: daddr,
+    next: daddr,
+}
+
+fn free_list_search(free_list_addr: daddr, req_size: i32) -> daddr {
+    // 終端の場合は 0 を返す
+    if (free_list_addr == -1) {
+        return 0;
+    }
+
+    // 割り当て可能な (or 先頭の) 場合は次へ
+    var free_list = free_list_addr as FreeList;
+    if (free_list.size < req_size || free_list.size == -1) {
+        return free_list_search(free_list.next, req_size);
+    }
+
+    // 十分なサイズがある場合はアドレスを返す
+    return free_list_addr;
+}
+
+fn init_heap_area(size: i32) {
+    // 0x0000 : FreeList の先頭 (=ヒープ領域の先頭)
+    FreeList @ 0x0000 {
+        size: -1,
+        prev: -1,
+        next: 0x000c,
+    };
+
+    // 0x000c : 実際に管理を行う FreeList の先頭
+    FreeList @ 0x000c {
+        size: size - sizeof(FreeList) * 2,
+        prev: 0x0000,
+        next: -1,
+    };
+}
+
+fn malloc(req_size: i32) -> daddr {
+    // 空き領域リストを検索 (失敗した場合は 0 を返す)
+    var free_list_addr = free_list_search(0x0000, req_size);
+    if (free_list_addr == 0) {
+        return 0;
+    }
+    var free_list = free_list_addr as FreeList;
+
+    // 十分なサイズがあるとき，対象領域の後半を分割して既存の FreeList に繋げる
+    if (free_list.size > req_size + sizeof(FreeList)) {
+        var new_free_list_addr = free_list_addr + sizeof(FreeList) + req_size;
+        FreeList @ new_free_list_addr {
+            size: free_list.size - req_size - sizeof(FreeList),
+            prev: free_list.prev,
+            next: free_list.next,
+        };
+        (free_list.prev as FreeList).next = new_free_list_addr;
+    }
+
+    // 十分なサイズが無いとき，分割を行わずにリストから外す
+    if (free_list.size <= req_size + sizeof(FreeList)) {
+        (free_list.prev as FreeList).next = free_list.next;
+        (free_list.next as FreeList).prev = free_list.prev;
+        req_size = free_list.size;
+    }
+
+    // 対象領域の前半を割り当て領域とする
+    var alloc_addr = free_list_addr + sizeof(FreeList);
+    free_list.size = req_size;
+    free_list.prev = 0;
+    free_list.next = 0;
+
+    return alloc_addr;
+}
+
+fn free(addr: daddr) {
+    // 返却領域に紐づく FreeList を取得
+    var free_list_addr = addr - sizeof(FreeList);
+    var free_list = free_list_addr as FreeList;
+
+    // 空き領域リストの先頭に繋げる
+    var top_addr: daddr = 0x0000;
+    free_list.prev = top_addr;
+    free_list.next = (top_addr as FreeList).next;
+    ((top_addr as FreeList).next as FreeList).prev = free_list_addr;
+    (top_addr as FreeList).next = free_list_addr;
+}
+
+fn main() {
+    init_heap_area(1024);
+
+    var ptr1 = malloc(100);
+    var ptr2 = malloc(200);
+    var ptr3 = malloc(50);
+
+    free(ptr2);
+    var ptr4 = malloc(150);
+}

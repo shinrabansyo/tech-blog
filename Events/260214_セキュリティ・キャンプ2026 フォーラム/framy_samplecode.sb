@@ -1,0 +1,52 @@
+fn draw_rect(color: i32, x: i32, y: i32, w: i32, h: i32) {
+    for (var j = 0; j < h; j += 1) {
+        for (var i = 0; i < w; i += 1) {
+            draw_pixel(x + i, y + j, color);
+        }
+    }
+}
+
+fn draw_rect_line(color: i32, x: i32, y: i32, w: i32, h: i32) {
+    for (var i = 0; i < w; i += 1) {
+        draw_pixel(x + i, y, color);
+        draw_pixel(x + i, y + h - 1, color);
+    }
+    for (var j = 0; j < h; j += 1) {
+        draw_pixel(x, y + j, color);
+        draw_pixel(x + w - 1, y + j, color);
+    }
+}
+
+fn main() {
+    init_display_16();
+
+    // palette
+    var white   = 0; set_pallet(white,   255, 255, 255); // 背景
+    var black   = 1; set_pallet(black,     0,   0,   0); // 目
+    var crimson = 2; set_pallet(crimson, 160,   0,   0); // 顔（紅）
+    var red     = 3; set_pallet(red,     255,   0,   0); // 耳（赤）
+    var orange  = 4; set_pallet(orange,  255, 165,   0); // 耳（橙）
+    var green   = 5; set_pallet(green,     0, 200,   0); // 鼻（緑）
+    var cyan    = 6; set_pallet(cyan,      0, 180, 255); // 鼻先（水色）
+    var purple  = 7; set_pallet(purple,  128,   0, 180); // 足（紫）
+    var yellow  = 8; set_pallet(yellow,  255, 255,   0); // しっぽ（黄）
+    var blue    = 9; set_pallet(blue,      0,   0, 255); // 体（青）
+
+    // 背景
+    draw_rect(white, 0, 0, 128, 128);
+
+
+    draw_rect_line(orange, 19, 14, 16, 20);
+    draw_rect_line(red,    51, 14, 20, 20);
+    draw_rect_line(crimson,28, 25, 32, 32);
+    draw_rect(black, 36, 41, 2, 2);
+    draw_rect(black, 52, 41, 2, 2);
+    draw_rect_line(green,   14, 49, 19, 8);
+    draw_rect(cyan,  15, 50,7, 3);
+    draw_rect_line(blue, 52, 53, 56, 22);
+    draw_rect_line(purple, 54, 73, 10, 19);
+    draw_rect_line(purple, 68, 76, 10, 19);
+    draw_rect_line(purple, 92, 73, 10, 19);
+    draw_rect_line(purple,106, 76, 10, 19);
+    draw_rect_line(yellow, 102, 49, 18, 8);
+}
